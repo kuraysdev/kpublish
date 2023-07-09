@@ -1,4 +1,4 @@
-use actix_web::{App, get, HttpServer, web, Responder, HttpResponse};
+use actix_web::{App, get, HttpServer, web, Responder, HttpResponse, HttpRequest};
 use std::fs;
 use std::fs::File;
 use std::io::Read;
@@ -6,6 +6,7 @@ use actix_web::middleware::Logger;
 use env_logger::Env;
 
 mod render;
+mod fileutil;
 
 
 #[get("/")]
@@ -15,7 +16,7 @@ async fn index() -> impl Responder {
 }
 
 #[get("/md")]
-async fn pages() -> impl Responder {
+async fn pages(req: HttpRequest) -> impl Responder {
     if let Ok(entries) = fs::read_dir("public") {
         let links: Vec<String> = entries
             .filter_map(|entry| {
@@ -24,11 +25,13 @@ async fn pages() -> impl Responder {
                     .to_string_lossy()
                     .into_owned()
                     .replace(".md", "");
-                
+                    let file_path = format!("public/{}.md", file_name);
+                    let first_line = fileutil::get_first_line(&file_path);
                     Some(format!(
-                        "[{}]({})",
+                        "[{}]({}) - {}",
                         file_name,
-                        format!("http://95.79.92.56:8080/md/{}", file_name)
+                        format!("{}/{}", req.uri(), file_name),
+                        first_line.unwrap_or("none".to_string()).replace("# ", "")
                     ))
                 } else {
                     None
@@ -39,7 +42,6 @@ async fn pages() -> impl Responder {
         let combined_links = links.join("\n\n");
         HttpResponse::Ok().body(render::html(&combined_links))
     } else {
-        eprintln!("Failed to read directory.");
         HttpResponse::InternalServerError().body("Failed to read directory.")
     }
 }
