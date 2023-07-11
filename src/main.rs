@@ -41,7 +41,7 @@ async fn pages(req: HttpRequest) -> impl Responder {
                 .collect();
 
             let combined_links = links.join("\n\n");
-            HttpResponse::Ok().body(render::html(&combined_links))
+            HttpResponse::Ok().body(render::html("Ссылки", &combined_links))
         },
         Err(_) => HttpResponse::InternalServerError().body("Failed to read directory.")
     }
@@ -55,10 +55,10 @@ async fn render_md_file(path: web::Path<String>) -> HttpResponse {
         Ok(mut file) => {
             let mut contents = String::new();
             file.read_to_string(&mut contents).unwrap();
-            let html_output = render::html(&contents);
+            let html_output = render::html(&md, &contents);
             HttpResponse::Ok().body(html_output)
         },
-        Err(_) => HttpResponse::InternalServerError().body(render::html("# НЕт ТаКоГо ФАЙла МЛЯТЬ. \n\n Создать хочешь? \n\n ПЕРЕХОЧЕШЬ"))
+        Err(_) => HttpResponse::InternalServerError().body(render::html("НЕт ТаКоГо ФАЙла МЛЯТЬ.", "Создать хочешь? \n\n ПЕРЕХОЧЕШЬ"))
     }
     
 
