@@ -16,8 +16,9 @@ pub fn html(markdown: &str) -> String {
                     link(rel="stylesheet", href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css") {}
                     script(src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js") {}
                     meta(charset="utf-8"){}
+                    meta(name="viewport", content="width=device-width, initial-scale=1.0"){}
                     style {
-                        : "body { width: 80%; margin: 0 auto !important }";
+                        : "body { width: 80%; margin: 1% auto !important }";
                         : "img { max-width: 80% }"
                     }
                 }

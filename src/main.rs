@@ -17,32 +17,33 @@ async fn index() -> impl Responder {
 
 #[get("/md")]
 async fn pages(req: HttpRequest) -> impl Responder {
-    if let Ok(entries) = fs::read_dir("public") {
-        let links: Vec<String> = entries
-            .filter_map(|entry| {
-                if let Ok(entry) = entry {
-                    let file_name = entry.file_name()
-                    .to_string_lossy()
-                    .into_owned()
-                    .replace(".md", "");
-                    let file_path = format!("public/{}.md", file_name);
-                    let first_line = fileutil::get_first_line(&file_path);
-                    Some(format!(
-                        "[{}]({}) - {}",
-                        file_name,
-                        format!("{}/{}", req.uri(), file_name),
-                        first_line.unwrap_or("none".to_string()).replace("# ", "")
-                    ))
-                } else {
-                    None
-                }
-            })
-            .collect();
+    match fs::read_dir("public") {
+        Ok(entries) =>  {
+            let links: Vec<String> = entries
+                .filter_map(|entry| {
+                    if let Ok(entry) = entry {
+                        let file_name = entry.file_name()
+                        .to_string_lossy()
+                        .into_owned()
+                        .replace(".md", "");
+                        let file_path = format!("public/{}.md", file_name);
+                        let first_line = fileutil::get_first_line(&file_path);
+                        Some(format!(
+                            "[{}]({}) - {}",
+                            file_name,
+                            format!("{}/{}", req.uri(), file_name.replace(" ", "%20")),
+                            first_line.unwrap_or("none".to_string()).replace("# ", "")
+                        ))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
 
-        let combined_links = links.join("\n\n");
-        HttpResponse::Ok().body(render::html(&combined_links))
-    } else {
-        HttpResponse::InternalServerError().body("Failed to read directory.")
+            let combined_links = links.join("\n\n");
+            HttpResponse::Ok().body(render::html(&combined_links))
+        },
+        Err(_) => HttpResponse::InternalServerError().body("Failed to read directory.")
     }
 }
 
@@ -50,15 +51,20 @@ async fn pages(req: HttpRequest) -> impl Responder {
 #[get("/md/{md}")]
 async fn render_md_file(path: web::Path<String>) -> HttpResponse {
     let md = path.into_inner();
-    let mut file = File::open(format!("public/{}.md", md)).unwrap();
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).unwrap();
+    match File::open(format!("public/{}.md", md)) {
+        Ok(mut file) => {
+            let mut contents = String::new();
+            file.read_to_string(&mut contents).unwrap();
+            let html_output = render::html(&contents);
+            HttpResponse::Ok().body(html_output)
+        },
+        Err(_) => HttpResponse::InternalServerError().body(render::html("# НЕт ТаКоГо ФАЙла МЛЯТЬ. \n\n Создать хочешь? \n\n ПЕРЕХОЧЕШЬ"))
+    }
+    
 
-    let html_output = render::html(&contents);
 
 
-
-    HttpResponse::Ok().body(html_output)
+    
 }
 
 #[tokio::main]
