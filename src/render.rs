@@ -52,7 +52,7 @@ fn make_header(name: &str) -> String {
                 style {
                     : "body { width: 80%; margin: 1% auto !important; }";
                     : "img { max-width: 80% }";
-                    : "footer { position: absolute; bottom: 0;}"
+                    
                 }
             }
         }
