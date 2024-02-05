@@ -15,7 +15,7 @@ async fn index() -> impl Responder {
 
 }
 
-#[get("/md")]
+#[get("/blog")]
 async fn pages(req: HttpRequest) -> impl Responder {
     match fs::read_dir("public") {
         Ok(entries) =>  {
@@ -48,14 +48,14 @@ async fn pages(req: HttpRequest) -> impl Responder {
 }
 
 
-#[get("/md/{md}")]
+#[get("/blog/{post}")]
 async fn render_md_file(path: web::Path<String>) -> HttpResponse {
-    let md = path.into_inner();
-    match File::open(format!("public/{}.md", md)) {
+    let post = path.into_inner();
+    match File::open(format!("public/{}.md", post)) {
         Ok(mut file) => {
             let mut contents = String::new();
             file.read_to_string(&mut contents).unwrap();
-            let html_output = render::html(&md, &contents);
+            let html_output = render::html(&post, &contents);
             HttpResponse::Ok().body(html_output)
         },
         Err(_) => HttpResponse::InternalServerError().body(render::html("НЕт ТаКоГо ФАЙла МЛЯТЬ.", "Создать хочешь? \n\n ПЕРЕХОЧЕШЬ"))

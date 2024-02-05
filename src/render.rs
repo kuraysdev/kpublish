@@ -13,13 +13,16 @@ pub fn html(name: &str, markdown: &str) -> String {
             html {
                 : Raw(&make_header(name));
                 body(class="markdown-body") {
+                    nav {
+                        a(href="/blog") {: "Exit"}
+                    }
                     : Raw(&mark_to_html(format!("# {}\n{}", name, markdown).as_str()));
                     script {
                         : Raw("hljs.initHighlighting()")
                     }
                     footer {
                         p { : "Author: Egor Abramov" }
-                        p { a(href="mailto:kurays@kurays.ml") { : "kurays@kurays.ml" } }
+                        p { a(href="mailto:kurays@kurays.ml") { : "me@kurays.dev" } }
                     }
                 }
             }
@@ -45,7 +48,7 @@ fn make_header(name: &str) -> String {
                 meta(charset="utf-8");
                 meta(property="og:title", content=&name);
                 meta(property="og:type", content="website");
-                meta(property="og:url", content="http://dev.kurays.ml:8080");
+                meta(property="og:url", content="http://blog.kurays.dev");
                 meta(property="og:description", content="Потом сделаю");
                 title { : &name }
                 meta(name="viewport", content="width=device-width, initial-scale=1.0");
