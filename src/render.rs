@@ -14,11 +14,15 @@ pub fn html(name: &str, markdown: &str) -> String {
                 : Raw(&make_header(name));
                 body(class="markdown-body") {
                     nav {
-                        a(href="/blog") {: "Exit"}
+                        a(href="/blog") {
+                            
+                        }
                     }
-                    : Raw(&mark_to_html(format!("# {}\n{}", name, markdown).as_str()));
+                    main {
+                        : Raw(&mark_to_html(format!("# {}\n{}", name, markdown).as_str()));
+                    }
                     script {
-                        : Raw("hljs.initHighlighting()")
+                        : Raw("hljs.initHighlighting()");
                     }
                     footer {
                         p { : "Author: Egor Abramov" }
@@ -54,7 +58,9 @@ fn make_header(name: &str) -> String {
                 meta(name="viewport", content="width=device-width, initial-scale=1.0");
                 style {
                     : "body { width: 80%; margin: 1% auto !important; }";
+                    : "nav { height: 2em }";
                     : "img { max-width: 80% }";
+                    : "main { background-color: #1c1d2a; border-radius: 10px; padding: 1px 25px; }";
                     
                 }
             }
