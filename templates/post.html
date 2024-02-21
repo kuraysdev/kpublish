@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown-dark.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github-dark.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <meta charset="utf-8"/>
+    <meta property="og:title", content={{name}}/>
+    <meta property="og:type", content="website"/>
+    <meta property="og:url", content="https://blog.kurays.dev"/>
+    <meta property="og:description", content="Потом сделаю"/>
+    <title>{{name}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        body { width: 80%; margin: 1% auto !important; }
+        nav { height: 2em }
+        img { max-width: 80% }
+        main { background-color: #1c1d2a; border-radius: 10px; padding: 1px 25px; }
+    </style>
+</head>
+
+<body class="markdown-body">
+    <nav><a href="/blog"></a></nav>
+    <main>{{{content}}}</main>
+    <script>hljs.initHighlighting()</script>
+    <footer>
+        <p>
+            Author: Egor Abramov
+        </p>
+        <p>
+            <a href="mailto:me@kurays.dev">me@kurays.dev</a>
+        </p>
+    </footer>
+</body>
+</html>
