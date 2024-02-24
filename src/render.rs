@@ -13,10 +13,12 @@ struct Headers {
 
 //Я люблю сосать член
 pub fn render(hb: web::Data<Handlebars<'_>>, name: &str, markdown: &str) -> String {
-    let md = parse::<Headers>(markdown).unwrap();
+    let md = parse::<Headers>(markdown).unwrap_or(parse::<>(markdown));
+    let title: Option<String> = Some(md.headers.title);
+    let titl = Some(title).unwrap_or(Some(name.to_owned())).unwrap();
     let data = json!({
-        "name": md.headers.title || name,
-        "content": &mark_to_html(format!("# {}\n{}", name, markdown).as_str())
+        "name": titl,
+        "content": &mark_to_html(format!("# {}\n{}", titl.as_str(), md.body).as_str())
     });
     let body = hb.render("post", &data).unwrap();
 
