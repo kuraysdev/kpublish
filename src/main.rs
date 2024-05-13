@@ -11,10 +11,6 @@ use handlebars::Handlebars;
 mod render;
 mod fileutil;
 
-
-
-
-
 // Handler function to return JSON file tree
 #[get("/filetree")]
 async fn file_tree() -> HttpResponse {

@@ -4,12 +4,13 @@ use pulldown_cmark::{Parser, Options};
 use serde_json::json;
 use actix_web::web;
 use serde::Deserialize;
-use serde_yaml;
+use serde_yaml::{self, Value};
 
 #[derive(Deserialize)]
 struct Headers {  
     title: Option<String>,
-    template: Option<String>
+    template: Option<String>,
+    data: Option<Value>,
 }
 
 //Я люблю сосать член
@@ -22,7 +23,8 @@ pub fn render(hb: web::Data<Handlebars<'_>>, name: &str, markdown: &str) -> Stri
 
     let data = json!({
         "name": title.clone(),
-        "content": &mark_to_html(format!("# {}\n{}", title, mark).as_str())
+        "content": &mark_to_html(format!("# {}\n{}", title, mark).as_str()),
+        "data": headers.data.unwrap_or("".into())
     });
     let body = hb.render(&template, &data).unwrap();
 

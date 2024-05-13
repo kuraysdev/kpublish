@@ -1,0 +1,135 @@
+<html>
+    <head>
+        <title>{{name}}</title>
+        <meta charset="utf-8"/>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown-dark.min.css"/>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    </head>
+    <body>
+        <script>hljs.initHighlighting()</script>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap');
+            :root {
+                --green: #76ff33;
+                --dark: #001926;
+                --gray: #bfd5ff;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                font-family: Rubik;
+                background: var(--dark);
+            }
+            .background {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 33.75rem;
+                z-index: -1;
+            }
+
+            .background img {
+                width: 100%;
+                height: 100%;
+                -o-object-fit: cover;
+                object-fit: cover;
+                filter: blur(12.5px);
+                opacity: .5;
+            }
+
+            section {
+                display: flex;
+                flex-direction: column;
+                position: relative;
+                padding: 9rem 20rem 0;
+                margin-bottom: 8rem;
+            }
+
+            .preview {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                border-radius: 1rem;
+                border: 1px solid rgba(255,255,255,.15);
+                background: var(--dark);
+                box-shadow: 0 2.5rem 5rem #00000080;
+                overflow: hidden;
+                align-items: center;
+                margin-bottom: 3rem;
+            }
+
+            .preview h1 {
+                color: #fff;
+                font-size: 2.25rem;
+                font-weight: 500;
+                line-height: 2.5rem;
+                text-transform: uppercase;
+                margin-bottom: 2rem;
+                padding: 0 1rem;
+                text-align: center;
+            }
+
+            .preview .info {
+                border-top: 1px solid rgba(255,255,255,.15);
+                padding: .75rem 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+            }
+
+            .info .date {
+                font-size: .75rem;
+                font-weight: 500;
+                line-height: 1rem;
+                letter-spacing: .0375rem;
+                text-transform: uppercase;
+                color: var(--gray);
+            }
+
+            .image {
+                width: 100%;
+                margin-bottom: 2rem;
+                position: relative;
+            }
+
+            .tag {
+                font-size: .75rem;
+                font-weight: 500;
+                line-height: 1rem;
+                letter-spacing: .0375rem;
+                text-transform: uppercase;
+                color: var(--green);
+                margin-bottom: .75rem;
+            }
+
+            .content {
+                padding: 0 3.5rem;
+                display: flex;
+                flex-direction: column;
+                color: #fff;
+            }
+
+        </style>
+
+        <section>
+            <div class="background">
+                <img src="{{data.postimage}}" alt="">
+            </div>
+            <div class="preview">
+                <img class="image" src="{{data.postimage}}" alt="">
+                <div class="tag">
+                    <span>Event</span>
+                </div>
+                <h1>{{name}}</h1>
+                <div class="info">
+                    <div class="date">02 May, 2024</div>
+                </div>
+            </div>
+            <div class="content">{{{content}}}</div>
+        </section>
+    </body>
+</html>
