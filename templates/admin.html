@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --text-color: #1f2937;
+            --bg-color: #ffffff;
+            --card-bg: #f3f4f6;
+            --border-color: #e5e7eb;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary-color: #3b82f6;
+                --text-color: #f3f4f6;
+                --bg-color: #111827;
+                --card-bg: #1f2937;
+                --border-color: #374151;
+            }
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+        }
+
+        .sidebar, .editor {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        textarea {
+            min-height: 600px;
+            font-family: ui-monospace, monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            tab-size: 2;
+        }
+
+        button {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.25rem;
+        }
+
+        .success {
+            background: #059669;
+            color: white;
+        }
+
+        .error {
+            background: #dc2626;
+            color: white;
+        }
+
+        .file-tree {
+            margin-top: 1rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            padding: 0.3rem 0.5rem;
+            cursor: pointer;
+            border-radius: 0.25rem;
+        }
+
+        .file-item:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .file-item.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .local-storage-key {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="form-group">
+                <label for="postingKey">Posting Key:</label>
+                <input type="password" id="postingKey" placeholder="Enter your posting key">
+            </div>
+            <button onclick="refreshFileTree()">Refresh File List</button>
+            <button onclick="createNewPost()">Create New Post</button>
+            <div class="file-tree" id="fileTree"></div>
+            <div class="local-storage-key">
+                Key is saved in local storage
+            </div>
+        </div>
+
+        <div class="editor">
+            <div class="form-group">
+                <label for="path">Path:</label>
+                <input type="text" id="path" placeholder="posts/my-post.md">
+            </div>
+            <div class="form-group">
+                <label for="content">Content:</label>
+                <textarea id="content" placeholder="---&#10;title: My Post&#10;template: post&#10;---&#10;&#10;# My Post&#10;&#10;Content goes here..."></textarea>
+            </div>
+            <button onclick="savePost()">Save Post</button>
+            <div id="message"></div>
+        </div>
+    </div>
+
+    <script>
+        // Local storage key for posting key
+        const STORAGE_KEY = 'posting_key';
+        let activeFile = null;
+
+        // Load posting key from local storage
+        window.onload = function() {
+            const savedKey = localStorage.getItem(STORAGE_KEY);
+            if (savedKey) {
+                document.getElementById('postingKey').value = savedKey;
+            }
+            refreshFileTree();
+        };
+
+        // Save posting key to local storage
+        document.getElementById('postingKey').addEventListener('change', function(e) {
+            localStorage.setItem(STORAGE_KEY, e.target.value);
+        });
+
+        async function refreshFileTree() {
+            try {
+                const response = await fetch('/filetree');
+                const files = await response.json();
+                const fileTree = document.getElementById('fileTree');
+                fileTree.innerHTML = '';
+
+                // Filter and sort markdown files
+                const mdFiles = files
+                    .filter(f => !f.is_directory && f.path.endsWith('.md'))
+                    .sort((a, b) => a.path.localeCompare(b.path));
+
+                mdFiles.forEach(file => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item' + (file.path === activeFile ? ' active' : '');
+                    div.textContent = file.path.replace('public/', '');
+                    div.onclick = () => loadFile(file.path.replace('public/', ''));
+                    fileTree.appendChild(div);
+                });
+            } catch (error) {
+                showMessage('Error loading file list: ' + error.message, false);
+            }
+        }
+
+        async function loadFile(path) {
+            try {
+                document.getElementById('path').value = path;
+                activeFile = path;
+                refreshFileTree(); // Refresh to show active state
+
+                const response = await fetch('/api/files/' + path);
+                if (!response.ok) throw new Error('File not found');
+                
+                const content = await response.text();
+                document.getElementById('content').value = content;
+                showMessage('File loaded successfully', true);
+            } catch (error) {
+                showMessage('Error loading file: ' + error.message, false);
+            }
+        }
+
+        function createNewPost() {
+            const template = `---
+title: New Post
+template: post
+date: ${new Date().toISOString().split('T')[0]}
+---
+
+# New Post
+
+Content goes here...`;
+
+            document.getElementById('path').value = 'posts/new-post.md';
+            document.getElementById('content').value = template;
+            activeFile = null;
+            refreshFileTree();
+        }
+
+        async function savePost() {
+            const postingKey = document.getElementById('postingKey').value;
+            const path = document.getElementById('path').value;
+            const content = document.getElementById('content').value;
+
+            if (!postingKey) {
+                showMessage('Please enter a posting key', false);
+                return;
+            }
+
+            if (!path) {
+                showMessage('Please enter a file path', false);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/files/' + path, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                        'X-Posting-Key': postingKey
+                    },
+                    body: content
+                });
+
+                if (response.ok) {
+                    showMessage('Post saved successfully!', true);
+                    refreshFileTree();
+                } else {
+                    throw new Error(await response.text());
+                }
+            } catch (error) {
+                showMessage('Error saving post: ' + error.message, false);
+            }
+        }
+
+        function showMessage(text, isSuccess) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = isSuccess ? 'success' : 'error';
+            setTimeout(() => messageDiv.textContent = '', 5000);
+        }
+
+        // Handle Ctrl+S to save
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                savePost();
+            }
+        });
+    </script>
+</body>
+</html>

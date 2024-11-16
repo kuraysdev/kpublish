@@ -1,15 +1,68 @@
 use actix_web::web::Data;
-use actix_web::{get, web, App, HttpResponse, HttpServer, HttpRequest};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, HttpRequest};
 use actix_files::NamedFile;
+use serde_json::json;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use actix_web::middleware::Logger;
 use env_logger::Env;
 use handlebars::Handlebars;
+use std::fs::{self, create_dir_all};
+use std::path::PathBuf;
 
 mod render;
 mod fileutil;
+
+const POSTING_KEY: &str = "your-secure-key-here";
+
+
+#[get("/admin")]
+async fn admin_page(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
+    let html = hb.render("admin", &json!({})).unwrap();
+    HttpResponse::Ok().body(html)
+}
+
+#[get("/api/files/{path:.*}")]
+async fn get_file(path: web::Path<String>) -> HttpResponse {
+    let file_path = Path::new("public").join(path.into_inner());
+    
+    match fs::read_to_string(&file_path) {
+        Ok(content) => HttpResponse::Ok().body(content),
+        Err(_) => HttpResponse::NotFound().body("File not found")
+    }
+}
+
+#[post("/api/files/{path:.*}")]
+async fn post_file(
+    req: HttpRequest,
+    path: web::Path<String>,
+    body: String
+) -> HttpResponse {
+    // Check posting key
+    match req.headers().get("X-Posting-Key") {
+        Some(key) if key == POSTING_KEY => (),
+        _ => return HttpResponse::Unauthorized().body("Invalid posting key")
+    }
+
+    let path_str = path.into_inner();
+    let file_path = PathBuf::from("public").join(&path_str);
+
+    // Create directories if they don't exist
+    if let Some(parent) = file_path.parent() {
+        if let Err(e) = create_dir_all(parent) {
+            return HttpResponse::InternalServerError()
+                .body(format!("Failed to create directories: {}", e));
+        }
+    }
+
+    // Write the file
+    match fs::write(&file_path, body) {
+        Ok(_) => HttpResponse::Ok().body("File saved successfully"),
+        Err(e) => HttpResponse::InternalServerError()
+            .body(format!("Failed to write file: {}", e))
+    }
+}
 
 // Handler function to return JSON file tree
 #[get("/filetree")]
@@ -29,7 +82,6 @@ async fn file_tree() -> HttpResponse {
 #[get("/{post:.*}")]
 async fn return_file(req: HttpRequest, path: web::Path<String>, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
     let post = path.into_inner();
-    println!("{}", post);
     let requested_path = Path::new("public").join(format!("{}", post));
 
     let file_path = if requested_path.is_dir() || post.is_empty() {
@@ -41,18 +93,27 @@ async fn return_file(req: HttpRequest, path: web::Path<String>, hb: web::Data<Ha
     };
 
     if !file_path.exists() || !file_path.is_file() {
-        // Если файл не найден, возвращаем ошибку 404
-        return HttpResponse::NotFound().body("404").into();
+        return HttpResponse::NotFound().body("404");
     }
 
     if file_path.extension().unwrap() == "md" {
-        // Если md файл рендерим его
+        // Read the markdown file
         let mut contents = String::new();
-        let mut file = File::open(file_path).unwrap();
+        let mut file = File::open(&file_path).unwrap();
         file.read_to_string(&mut contents).unwrap();
-        let html_output = render::render(hb, &post, &contents);
+
+        // If it's an index file, get directory contents
+        let mut data = json!({});
+        if file_path.file_name().unwrap() == "index.md" {
+            let dir_index = fileutil::get_directory_index(file_path.parent().unwrap());
+            data = json!({
+                "index": dir_index
+            });
+        }
+
+        let html_output = render::render(hb, &post, &contents, Some(data));
         HttpResponse::Ok().body(html_output)
-    } else  {
+    } else {
         NamedFile::open(file_path).unwrap().into_response(&req)
     }
 }
@@ -74,10 +135,11 @@ async fn main() -> std::io::Result<()> {
         .wrap(Logger::default())
         .wrap(Logger::new("%a %{User-Agent}i"))
         .app_data(handlebars.clone())
-        //.service(index)
+        .service(admin_page)
+        .service(get_file)
+        .service(post_file)
         .service(file_tree)
         .service(return_file)
-        //.service(pages)
     }).bind(("0.0.0.0", 8080))?
     .run().await?;
     Ok(())

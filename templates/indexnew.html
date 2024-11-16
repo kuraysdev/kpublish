@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --text-color: #1f2937;
+            --bg-color: #ffffff;
+            --card-bg: #f3f4f6;
+            --border-color: #e5e7eb;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary-color: #3b82f6;
+                --text-color: #f3f4f6;
+                --bg-color: #111827;
+                --card-bg: #1f2937;
+                --border-color: #374151;
+            }
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .post-list {
+            display: grid;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .post-card {
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            transition: transform 0.2s;
+        }
+
+        .post-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .post-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0 0 1rem 0;
+            color: var(--primary-color);
+        }
+
+        .post-title a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .post-title a:hover {
+            text-decoration: underline;
+        }
+
+        .post-meta {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+
+        .post-preview {
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .subdirs {
+            margin: 2rem 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .subdir-link {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        .subdir-link:hover {
+            opacity: 0.9;
+        }
+
+        .content {
+            margin-bottom: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        {{{content}}}
+    </div>
+
+    {{#if index.subdirs}}
+    <div class="subdirs">
+        {{#each index.subdirs}}
+        <a href="./{{this}}" class="subdir-link">{{this}}</a>
+        {{/each}}
+    </div>
+    {{/if}}
+
+    <div class="post-list">
+        {{#each index.posts}}
+        <article class="post-card">
+            <h2 class="post-title">
+                <a href="./{{path}}">{{metadata.title}}</a>
+            </h2>
+            <div class="post-meta">
+                {{date}} {{metadata.data.tags}}
+            </div>
+            <p class="post-preview">{{preview}}</p>
+        </article>
+        {{/each}}
+    </div>
+</body>
+</html>

@@ -1,6 +1,16 @@
-# Вау, микро-блог с backend'ом на Rust!
-Клонируйте репозиторий или установите исходники. Установите Rust. В терминале пропишите:
+# kpublish - rust powered blog sofwtware
 
-``cargo run``
+Features:
+- [x] Posts in markdown
+- [x] Custom post metadata
+- [x] Compiled executable ~6 MB
+- [x] Custom templates support
+- [x] Admin page
 
-Запустите http://localhost:8080/blog в своём браузере. Готово!
+
+
+## building
+before build CHANGE
+```rust
+const POSTING_KEY: &str = "your-secure-key-here";
+```

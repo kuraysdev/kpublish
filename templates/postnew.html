@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --text-color: #1f2937;
+            --bg-color: #ffffff;
+            --card-bg: #f3f4f6;
+            --border-color: #e5e7eb;
+            --code-bg: #1f2937;
+            --blockquote-border: #d1d5db;
+            --link-color: #2563eb;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary-color: #3b82f6;
+                --text-color: #f3f4f6;
+                --bg-color: #111827;
+                --card-bg: #1f2937;
+                --border-color: #374151;
+                --code-bg: #111827;
+                --blockquote-border: #374151;
+                --link-color: #60a5fa;
+            }
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        nav {
+            margin-bottom: 2rem;
+        }
+
+        nav a {
+            color: var(--link-color);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        .article-header {
+            margin-bottom: 3rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .article-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin: 0 0 1rem 0;
+        }
+
+        .article-meta {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        /* Article content styles */
+        .article-content {
+            font-size: 1.125rem;
+        }
+
+        .article-content h1,
+        .article-content h2,
+        .article-content h3,
+        .article-content h4 {
+            margin-top: 2em;
+            margin-bottom: 1em;
+            line-height: 1.3;
+        }
+
+        .article-content h1 { font-size: 2rem; }
+        .article-content h2 { font-size: 1.75rem; }
+        .article-content h3 { font-size: 1.5rem; }
+        .article-content h4 { font-size: 1.25rem; }
+
+        .article-content p {
+            margin: 1.5em 0;
+        }
+
+        .article-content a {
+            color: var(--link-color);
+            text-decoration: underline;
+            text-decoration-thickness: 0.1em;
+            text-underline-offset: 0.2em;
+        }
+
+        .article-content a:hover {
+            text-decoration-thickness: 0.2em;
+        }
+
+        .article-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            margin: 2rem auto;
+            display: block;
+        }
+
+        .article-content pre {
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .article-content code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.9em;
+            padding: 0.2em 0.4em;
+            background: var(--code-bg);
+            border-radius: 0.25rem;
+        }
+
+        .article-content pre code {
+            padding: 0;
+            background: none;
+        }
+
+        .article-content blockquote {
+            margin: 2rem 0;
+            padding: 1rem 1.5rem;
+            border-left: 4px solid var(--blockquote-border);
+            font-style: italic;
+            color: #6b7280;
+        }
+
+        .article-content ul,
+        .article-content ol {
+            margin: 1.5em 0;
+            padding-left: 1.5em;
+        }
+
+        .article-content li {
+            margin: 0.5em 0;
+        }
+
+        .article-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+        }
+
+        .article-content th,
+        .article-content td {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .article-content th {
+            background: var(--card-bg);
+        }
+
+        .article-footer {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 1rem;
+            }
+
+            .article-title {
+                font-size: 2rem;
+            }
+
+            .article-content {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/blog">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15.8333 10H4.16667M4.16667 10L10 15.8333M4.16667 10L10 4.16667" stroke="currentColor" stroke-width="1.67" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Back to blog
+        </a>
+    </nav>
+
+    <article>
+        <header class="article-header">
+            <h1 class="article-title">{{title}}</h1>
+            <div class="article-meta">
+                <time datetime="{{created_at}}">{{created_at}}</time>
+                {{#if data.author}} • {{data.author}}{{/if}}
+            </div>
+        </header>
+
+        <div class="article-content">
+            {{{content}}}
+        </div>
+
+        {{#if show_footer}}
+        <footer class="article-footer">
+            {{#if tags}}
+            <div class="article-tags">
+                Tags: {{join tags ", "}}
+            </div>
+            {{/if}}
+            <p>
+                Last updated: {{format_date updated_at}}
+            </p>
+        </footer>
+        {{/if}}
+    </article>
+
+    <script>
+        // Initialize syntax highlighting
+        hljs.highlightAll();
+
+        // Make external links open in new tab
+        document.querySelectorAll('a[href^="http"]').forEach(link => {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+        });
+    </script>
+</body>
+</html>
