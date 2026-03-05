@@ -1,13 +1,13 @@
+use actix_web::web;
 use handlebars::Handlebars;
 use pulldown_cmark::html::push_html;
-use pulldown_cmark::{Parser, Options};
-use serde_json::json;
-use actix_web::web;
+use pulldown_cmark::{Options, Parser};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use serde_yaml::{self, Value};
 
 #[derive(Serialize, Deserialize)]
-pub struct Headers {  
+pub struct Headers {
     title: Option<String>,
     template: Option<String>,
     data: Option<Value>,
@@ -15,12 +15,12 @@ pub struct Headers {
 
 //Я люблю сосать член
 pub fn render(
-    hb: web::Data<Handlebars<'_>>, 
-    name: &str, 
+    hb: web::Data<Handlebars<'_>>,
+    name: &str,
     markdown: &str,
-    additional_data: Option<serde_json::Value>
+    additional_data: Option<serde_json::Value>,
 ) -> String {
-    let (headers, mark) = get_headers(markdown);
+    let (headers, md) = get_headers(markdown);
     let headers: Headers = serde_yaml::from_str(&headers).unwrap();
 
     let title = headers.title.unwrap_or(name.into());
@@ -28,7 +28,7 @@ pub fn render(
 
     let mut data = json!({
         "name": title.clone(),
-        "content": &mark_to_html(format!("# {}\n{}", title, mark).as_str()),
+        "content": &mark_to_html(md.as_str()),
         "data": headers.data.unwrap_or("".into())
     });
 
@@ -44,8 +44,6 @@ pub fn render(
     let body = hb.render(&template, &data).unwrap();
     body
 }
-
-
 
 pub fn get_headers<R: AsRef<str>>(markdown: R) -> (String, String) {
     let (mut headers, mut data, mut started, mut finished) = (vec![], vec![], false, false);

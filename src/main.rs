@@ -1,21 +1,26 @@
-use actix_web::web::Data;
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, HttpRequest};
 use actix_files::NamedFile;
-use serde_json::json;
-use std::fs::File;
-use std::io::Read;
-use std::path::Path;
 use actix_web::middleware::Logger;
+use actix_web::web::Data;
+use actix_web::{get, post, web, App, HttpRequest, HttpResponse, HttpServer};
 use env_logger::Env;
 use handlebars::Handlebars;
+use serde::Deserialize;
+use serde_json::json;
+use std::fs::File;
 use std::fs::{self, create_dir_all};
+use std::io::Read;
+use std::path::Path;
 use std::path::PathBuf;
 
-mod render;
 mod fileutil;
+mod render;
 
 const POSTING_KEY: &str = "your-secure-key-here";
 
+#[derive(Deserialize)]
+struct PostParams {
+    md: Option<bool>,
+}
 
 #[get("/admin")]
 async fn admin_page(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
@@ -26,23 +31,19 @@ async fn admin_page(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
 #[get("/api/files/{path:.*}")]
 async fn get_file(path: web::Path<String>) -> HttpResponse {
     let file_path = Path::new("public").join(path.into_inner());
-    
+
     match fs::read_to_string(&file_path) {
         Ok(content) => HttpResponse::Ok().body(content),
-        Err(_) => HttpResponse::NotFound().body("File not found")
+        Err(_) => HttpResponse::NotFound().body("File not found"),
     }
 }
 
 #[post("/api/files/{path:.*}")]
-async fn post_file(
-    req: HttpRequest,
-    path: web::Path<String>,
-    body: String
-) -> HttpResponse {
+async fn post_file(req: HttpRequest, path: web::Path<String>, body: String) -> HttpResponse {
     // Check posting key
     match req.headers().get("X-Posting-Key") {
         Some(key) if key == POSTING_KEY => (),
-        _ => return HttpResponse::Unauthorized().body("Invalid posting key")
+        _ => return HttpResponse::Unauthorized().body("Invalid posting key"),
     }
 
     let path_str = path.into_inner();
@@ -59,8 +60,7 @@ async fn post_file(
     // Write the file
     match fs::write(&file_path, body) {
         Ok(_) => HttpResponse::Ok().body("File saved successfully"),
-        Err(e) => HttpResponse::InternalServerError()
-            .body(format!("Failed to write file: {}", e))
+        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to write file: {}", e)),
     }
 }
 
@@ -78,9 +78,13 @@ async fn file_tree() -> HttpResponse {
         .body(json_response)
 }
 
-
 #[get("/{post:.*}")]
-async fn return_file(req: HttpRequest, path: web::Path<String>, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
+async fn return_file(
+    req: HttpRequest,
+    path: web::Path<String>,
+    params: web::Query<PostParams>,
+    hb: web::Data<Handlebars<'_>>,
+) -> HttpResponse {
     let post = path.into_inner();
     let requested_path = Path::new("public").join(format!("{}", post));
 
@@ -110,6 +114,11 @@ async fn return_file(req: HttpRequest, path: web::Path<String>, hb: web::Data<Ha
                 "index": dir_index
             });
         }
+        if params.md.unwrap_or(false) {
+            return HttpResponse::Ok()
+                .append_header(("Content-Type", "text/plain; charset=utf-8"))
+                .body(contents);
+        }
 
         let html_output = render::render(hb, &post, &contents, Some(data));
         HttpResponse::Ok().body(html_output)
@@ -120,8 +129,13 @@ async fn return_file(req: HttpRequest, path: web::Path<String>, hb: web::Data<Ha
 
 fn register_templates() -> Data<Handlebars<'static>> {
     let mut handlebars = Handlebars::new();
-    handlebars.register_templates_directory(".html", "./templates").unwrap();
-    println!("Registered {} templates", handlebars.get_templates().len().to_owned());
+    handlebars
+        .register_templates_directory(".html", "./templates")
+        .unwrap();
+    println!(
+        "Registered {} templates",
+        handlebars.get_templates().len().to_owned()
+    );
     web::Data::new(handlebars)
 }
 
@@ -132,15 +146,17 @@ async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("info"));
     HttpServer::new(move || {
         App::new()
-        .wrap(Logger::default())
-        .wrap(Logger::new("%a %{User-Agent}i"))
-        .app_data(handlebars.clone())
-        .service(admin_page)
-        .service(get_file)
-        .service(post_file)
-        .service(file_tree)
-        .service(return_file)
-    }).bind(("0.0.0.0", 8080))?
-    .run().await?;
+            .wrap(Logger::default())
+            .wrap(Logger::new("%a %{User-Agent}i"))
+            .app_data(handlebars.clone())
+            .service(admin_page)
+            .service(get_file)
+            .service(post_file)
+            .service(file_tree)
+            .service(return_file)
+    })
+    .bind(("0.0.0.0", 8080))?
+    .run()
+    .await?;
     Ok(())
 }
