@@ -13,7 +13,6 @@ pub struct Headers {
     data: Option<Value>,
 }
 
-//Я люблю сосать член
 pub fn render(
     hb: web::Data<Handlebars<'_>>,
     name: &str,

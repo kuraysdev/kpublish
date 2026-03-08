@@ -11,15 +11,21 @@ use std::fs::{self, create_dir_all};
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
+use serde_yaml;
 
 mod fileutil;
 mod render;
 
-const POSTING_KEY: &str = "your-secure-key-here";
-
 #[derive(Deserialize)]
 struct PostParams {
     md: Option<bool>,
+}
+
+
+#[derive(Deserialize, Clone)]
+struct Config {
+    host: String,
+    password: String
 }
 
 #[get("/admin")]
@@ -39,10 +45,10 @@ async fn get_file(path: web::Path<String>) -> HttpResponse {
 }
 
 #[post("/api/files/{path:.*}")]
-async fn post_file(req: HttpRequest, path: web::Path<String>, body: String) -> HttpResponse {
+async fn post_file(req: HttpRequest, path: web::Path<String>, config: web::Data<Config>, body: String) -> HttpResponse {
     // Check posting key
     match req.headers().get("X-Posting-Key") {
-        Some(key) if key == POSTING_KEY => (),
+        Some(key) if *key == *config.password => (),
         _ => return HttpResponse::Unauthorized().body("Invalid posting key"),
     }
 
@@ -139,23 +145,36 @@ fn register_templates() -> Data<Handlebars<'static>> {
     web::Data::new(handlebars)
 }
 
+fn load_config() -> Config {
+    let yaml_str = fs::read_to_string("config.yaml")
+        .expect("Не удалось прочитать config.yaml");
+
+    serde_yaml::from_str(&yaml_str)
+        .expect("Ошибка парсинга YAML")
+}
+
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     println!("Hello, kpublish!");
     let handlebars = register_templates();
+    let config = load_config();
+
+    let config_data = web::Data::new(config.clone());
+
     env_logger::init_from_env(Env::default().default_filter_or("info"));
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
             .wrap(Logger::new("%a %{User-Agent}i"))
             .app_data(handlebars.clone())
+            .app_data(config_data.clone())
             .service(admin_page)
             .service(get_file)
             .service(post_file)
             .service(file_tree)
             .service(return_file)
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind(config.host)?
     .run()
     .await?;
     Ok(())
