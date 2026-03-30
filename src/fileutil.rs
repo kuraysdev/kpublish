@@ -91,6 +91,13 @@ pub fn get_directory_index(dir_path: &Path) -> DirectoryIndex {
                         }
                     }
                 } else if let Some(extension) = path.extension() {
+                    if let Some(file) = path.file_name() {
+                        if let Some(file_str) = file.to_str() {
+                            if file_str.starts_with('.') {
+                                break;
+                            }
+                        }
+                    }
                     if extension == "md" {
                         if let Ok(mut file) = fs::File::open(&path) {
                             let mut contents = String::new();
