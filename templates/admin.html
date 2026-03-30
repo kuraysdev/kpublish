@@ -200,7 +200,7 @@
                 mdFiles.forEach(file => {
                     const div = document.createElement('div');
                     div.className = 'file-item' + (file.path === activeFile ? ' active' : '');
-                    div.textContent = file.path.replace('public/', '');
+                    div.textContent = file.path.replace('./public/', '');
                     div.onclick = () => loadFile(file.path.replace('public/', ''));
                     fileTree.appendChild(div);
                 });
@@ -217,7 +217,7 @@
 
                 const response = await fetch('/api/files/' + path);
                 if (!response.ok) throw new Error('File not found');
-                
+
                 const content = await response.text();
                 document.getElementById('content').value = content;
                 showMessage('File loaded successfully', true);

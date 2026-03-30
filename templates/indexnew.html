@@ -1,136 +1,212 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{title}}</title>
+    <title>{{title}} // KURAYS.DEV</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css">
+
     <style>
         :root {
-            --primary-color: #2563eb;
-            --text-color: #1f2937;
-            --bg-color: #ffffff;
-            --card-bg: #f3f4f6;
-            --border-color: #e5e7eb;
-        }
+            --black: #000000;
+            --dark: #0A0A0A;
+            --gray-dark: #1A1A1A;
+            --gray: #333333;
+            --gray-light: #666666;
+            --gray-lighter: #999999;
+            --white: #FFFFFF;
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --primary-color: #3b82f6;
-                --text-color: #f3f4f6;
-                --bg-color: #111827;
-                --card-bg: #1f2937;
-                --border-color: #374151;
-            }
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --border-width: 1px;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --transition-fast: 0.15s ease;
         }
 
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: var(--font-primary);
+            background-color: var(--black);
+            color: var(--white);
             line-height: 1.6;
-            color: var(--text-color);
-            background: var(--bg-color);
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem 1rem;
+            margin: 0;
+            padding: 0;
         }
 
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header / Logo Section */
+        header {
+            border-bottom: var(--border-width) solid var(--border-color);
+            padding: 2rem 0;
+            margin-bottom: 3rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            text-decoration: none;
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo::before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: var(--white);
+        }
+
+        /* Categories / Subdirs */
+        .subdirs {
+            margin: 0 0 3rem 0;
+            display: flex;
+            gap: 0;
+            flex-wrap: wrap;
+            border: var(--border-width) solid var(--border-color);
+        }
+
+        .subdir-link {
+            padding: 0.75rem 1.5rem;
+            background: var(--black);
+            color: var(--gray-lighter);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-right: var(--border-width) solid var(--border-color);
+            transition: all var(--transition-fast);
+        }
+
+        .subdir-link:hover {
+            background: var(--white);
+            color: var(--black);
+        }
+
+        /* Post Grid */
         .post-list {
             display: grid;
-            gap: 2rem;
-            margin: 2rem 0;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 0;
+            border-left: var(--border-width) solid var(--border-color);
+            border-top: var(--border-width) solid var(--border-color);
+            margin-bottom: 4rem;
         }
 
         .post-card {
-            background: var(--card-bg);
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            transition: transform 0.2s;
+            background: var(--black);
+            padding: 2rem;
+            border-right: var(--border-width) solid var(--border-color);
+            border-bottom: var(--border-width) solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: background var(--transition-fast);
         }
 
         .post-card:hover {
-            transform: translateY(-2px);
+            background: var(--dark);
         }
 
         .post-title {
             font-size: 1.5rem;
-            font-weight: 600;
+            font-weight: 800;
+            line-height: 1.2;
             margin: 0 0 1rem 0;
-            color: var(--primary-color);
+            letter-spacing: -0.02em;
         }
 
         .post-title a {
-            color: inherit;
+            color: var(--white);
             text-decoration: none;
         }
 
-        .post-title a:hover {
+        .post-card:hover .post-title a {
             text-decoration: underline;
+            text-underline-offset: 4px;
         }
 
         .post-meta {
-            font-size: 0.875rem;
-            color: #6b7280;
-            margin-bottom: 1rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--gray-light);
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
 
         .post-preview {
-            color: var(--text-color);
+            color: var(--gray-lighter);
+            font-size: 0.95rem;
             margin: 0;
-        }
-
-        .subdirs {
-            margin: 2rem 0;
-            padding: 0;
-            list-style: none;
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .subdir-link {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: var(--primary-color);
-            color: white;
-            text-decoration: none;
-            border-radius: 0.25rem;
-            font-size: 0.875rem;
-        }
-
-        .subdir-link:hover {
-            opacity: 0.9;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .content {
             margin-bottom: 3rem;
+            font-size: 1.1rem;
+            color: var(--gray-lighter);
+        }
+
+        @media (max-width: 768px) {
+            .post-list { grid-template-columns: 1fr; }
+            .container { padding: 0 1rem; }
+            .subdir-link { flex-grow: 1; text-align: center; }
         }
     </style>
 </head>
 <body>
-    <div class="content">
-        {{{content}}}
-    </div>
+    <div class="container">
+        <header>
+            <a href="https://kurays.dev" class="logo">KURAYS.DEV // BLOG</a>
+        </header>
 
-    {{#if index.subdirs}}
-    <div class="subdirs">
-        {{#each index.subdirs}}
-        <a href="./{{this}}" class="subdir-link">{{this}}</a>
-        {{/each}}
-    </div>
-    {{/if}}
+        <div class="content">
+            {{{content}}}
+        </div>
 
-    <div class="post-list">
-        {{#each index.posts}}
-        <article class="post-card">
-            <h2 class="post-title">
-                <a href="./{{path}}">{{metadata.title}}</a>
-            </h2>
-            <div class="post-meta">
-                {{date}} {{metadata.data.tags}}
-            </div>
-            <p class="post-preview">{{preview}}</p>
-        </article>
-        {{/each}}
+        {{#if index.subdirs}}
+        <nav class="subdirs">
+            {{#each index.subdirs}}
+            <a href="./{{this}}" class="subdir-link">{{this}}</a>
+            {{/each}}
+        </nav>
+        {{/if}}
+
+        <section class="post-list">
+            {{#each index.posts}}
+            <article class="post-card">
+                <div class="post-meta">
+                    <span>{{date}}</span>
+                    {{#if metadata.data.tags}}
+                    <span style="color: var(--white)">/</span>
+                    <span>{{metadata.data.tags}}</span>
+                    {{/if}}
+                </div>
+
+                <h2 class="post-title">
+                    <a href="./{{path}}">{{metadata.title}}</a>
+                </h2>
+
+                <p class="post-preview">{{preview}}</p>
+            </article>
+            {{/each}}
+        </section>
     </div>
 </body>
 </html>

@@ -98,7 +98,7 @@ pub fn get_directory_index(dir_path: &Path) -> DirectoryIndex {
                             }
                         }
                     }
-                    if extension == "md" {
+                    if extension == "md" && !path.ends_with("index.md") {
                         if let Ok(mut file) = fs::File::open(&path) {
                             let mut contents = String::new();
                             if file.read_to_string(&mut contents).is_ok() {
