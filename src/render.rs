@@ -11,6 +11,7 @@ pub struct Headers {
     title: Option<String>,
     template: Option<String>,
     data: Option<Value>,
+    password: Option<String>,
 }
 
 pub fn render(

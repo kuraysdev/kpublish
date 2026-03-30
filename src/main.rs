@@ -4,14 +4,14 @@ use actix_web::web::Data;
 use actix_web::{get, post, web, App, HttpRequest, HttpResponse, HttpServer};
 use env_logger::Env;
 use handlebars::Handlebars;
-use serde::Deserialize;
-use serde_json::json;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use serde_yaml;
 use std::fs::File;
 use std::fs::{self, create_dir_all};
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
-use serde_yaml;
 
 mod fileutil;
 mod render;
@@ -19,13 +19,21 @@ mod render;
 #[derive(Deserialize)]
 struct PostParams {
     md: Option<bool>,
+    password: Option<String>,
 }
-
 
 #[derive(Deserialize, Clone)]
 struct Config {
     host: String,
-    password: String
+    password: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Headers {
+    title: Option<String>,
+    template: Option<String>,
+    data: Option<Value>,
+    password: Option<String>,
 }
 
 #[get("/admin")]
@@ -45,7 +53,12 @@ async fn get_file(path: web::Path<String>) -> HttpResponse {
 }
 
 #[post("/api/files/{path:.*}")]
-async fn post_file(req: HttpRequest, path: web::Path<String>, config: web::Data<Config>, body: String) -> HttpResponse {
+async fn post_file(
+    req: HttpRequest,
+    path: web::Path<String>,
+    config: web::Data<Config>,
+    body: String,
+) -> HttpResponse {
     // Check posting key
     match req.headers().get("X-Posting-Key") {
         Some(key) if *key == *config.password => (),
@@ -120,6 +133,16 @@ async fn return_file(
                 "index": dir_index
             });
         }
+
+        let (headers, md) = render::get_headers(&contents);
+        let headers: Headers = serde_yaml::from_str(&headers).unwrap();
+
+        if headers.password.as_ref() != params.password.as_ref() {
+            return HttpResponse::Forbidden()
+                .append_header(("Content-Type", "text/plain; charset=utf-8"))
+                .body("No!");
+        }
+
         if params.md.unwrap_or(false) {
             return HttpResponse::Ok()
                 .append_header(("Content-Type", "text/plain; charset=utf-8"))
@@ -146,11 +169,9 @@ fn register_templates() -> Data<Handlebars<'static>> {
 }
 
 fn load_config() -> Config {
-    let yaml_str = fs::read_to_string("config.yaml")
-        .expect("Не удалось прочитать config.yaml");
+    let yaml_str = fs::read_to_string("config.yaml").expect("Не удалось прочитать config.yaml");
 
-    serde_yaml::from_str(&yaml_str)
-        .expect("Ошибка парсинга YAML")
+    serde_yaml::from_str(&yaml_str).expect("Ошибка парсинга YAML")
 }
 
 #[tokio::main]
