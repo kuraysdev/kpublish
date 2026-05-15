@@ -7,14 +7,17 @@ use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use serde_yaml;
+use std::collections::HashMap;
 use std::fs::File;
 use std::fs::{self, create_dir_all};
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
+use tokio::sync::RwLock;
 
 mod fileutil;
 mod render;
+mod rss;
 
 #[derive(Deserialize)]
 struct PostParams {
@@ -26,6 +29,7 @@ struct PostParams {
 struct Config {
     host: String,
     password: String,
+    base_url: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -34,6 +38,10 @@ pub struct Headers {
     template: Option<String>,
     data: Option<Value>,
     password: Option<String>,
+}
+
+struct AppState {
+    rss_cache: RwLock<HashMap<String, String>>,
 }
 
 #[get("/admin")]
@@ -57,6 +65,7 @@ async fn post_file(
     req: HttpRequest,
     path: web::Path<String>,
     config: web::Data<Config>,
+    state: web::Data<AppState>,
     body: String,
 ) -> HttpResponse {
     // Check posting key
@@ -78,7 +87,11 @@ async fn post_file(
 
     // Write the file
     match fs::write(&file_path, body) {
-        Ok(_) => HttpResponse::Ok().body("File saved successfully"),
+        Ok(_) => {
+            let mut rss_cache = state.rss_cache.write().await;
+            rss_cache.clear();
+            HttpResponse::Ok().body("File saved successfully")
+        }
         Err(e) => HttpResponse::InternalServerError().body(format!("Failed to write file: {}", e)),
     }
 }
@@ -95,6 +108,49 @@ async fn file_tree() -> HttpResponse {
     HttpResponse::Ok()
         .content_type("application/json")
         .body(json_response)
+}
+
+#[get("/rss.xml")]
+async fn rss_feed(config: web::Data<Config>, state: web::Data<AppState>) -> HttpResponse {
+    build_rss_response("", &config, &state).await
+}
+
+#[get("/{feed_path:.*}/rss.xml")]
+async fn rss_feed_for_path(
+    path: web::Path<String>,
+    config: web::Data<Config>,
+    state: web::Data<AppState>,
+) -> HttpResponse {
+    build_rss_response(path.as_str(), &config, &state).await
+}
+
+async fn build_rss_response(
+    feed_path: &str,
+    config: &web::Data<Config>,
+    state: &web::Data<AppState>,
+) -> HttpResponse {
+    let normalized_feed_path = feed_path.trim_matches('/').to_owned();
+
+    {
+        let rss_cache = state.rss_cache.read().await;
+        if let Some(xml) = rss_cache.get(&normalized_feed_path) {
+            return HttpResponse::Ok()
+                .append_header(("Content-Type", "application/rss+xml; charset=utf-8"))
+                .body(xml.clone());
+        }
+    }
+
+    match rss::build_rss_feed("public", &config.base_url, &normalized_feed_path) {
+        Ok(xml) => {
+            let mut rss_cache = state.rss_cache.write().await;
+            rss_cache.insert(normalized_feed_path, xml.clone());
+            HttpResponse::Ok()
+                .append_header(("Content-Type", "application/rss+xml; charset=utf-8"))
+                .body(xml)
+        }
+        Err(e) if e.starts_with("NOT_FOUND:") => HttpResponse::NotFound().body("404"),
+        Err(e) => HttpResponse::InternalServerError().body(e),
+    }
 }
 
 #[get("/{post:.*}")]
@@ -181,6 +237,9 @@ async fn main() -> std::io::Result<()> {
     let config = load_config();
 
     let config_data = web::Data::new(config.clone());
+    let state_data = web::Data::new(AppState {
+        rss_cache: RwLock::new(HashMap::new()),
+    });
 
     env_logger::init_from_env(Env::default().default_filter_or("info"));
     HttpServer::new(move || {
@@ -189,11 +248,14 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::new("%a %{User-Agent}i"))
             .app_data(handlebars.clone())
             .app_data(config_data.clone())
+            .app_data(state_data.clone())
             .service(admin_page)
             .service(get_file)
             .service(post_file)
-            .service(file_tree)
             .service(return_file)
+            .service(file_tree)
+            .service(rss_feed_for_path)  
+            .service(rss_feed)
     })
     .bind(config.host)?
     .run()

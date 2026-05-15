@@ -1,2 +1,3 @@
 host: 0.0.0.0:8080
 password: test
+base_url: http://localhost:8080
