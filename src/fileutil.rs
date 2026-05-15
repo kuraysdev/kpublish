@@ -114,7 +114,8 @@ pub fn get_directory_index(dir_path: &Path) -> DirectoryIndex {
                                         .strip_prefix("public")
                                         .unwrap_or(&path)
                                         .to_string_lossy()
-                                        .into_owned();
+                                        .into_owned()
+                                        .replace(".md", "");
 
                                     // Get date from metadata or file modification time
                                     let date = get_file_date(&path);

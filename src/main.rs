@@ -135,7 +135,7 @@ async fn build_rss_response(
         let rss_cache = state.rss_cache.read().await;
         if let Some(xml) = rss_cache.get(&normalized_feed_path) {
             return HttpResponse::Ok()
-                .append_header(("Content-Type", "application/rss+xml; charset=utf-8"))
+                //.append_header(("Content-Type", "application/rss+xml; charset=utf-8"))
                 .body(xml.clone());
         }
     }
@@ -145,7 +145,7 @@ async fn build_rss_response(
             let mut rss_cache = state.rss_cache.write().await;
             rss_cache.insert(normalized_feed_path, xml.clone());
             HttpResponse::Ok()
-                .append_header(("Content-Type", "application/rss+xml; charset=utf-8"))
+                //.append_header(("Content-Type", "application/rss+xml; charset=utf-8"))
                 .body(xml)
         }
         Err(e) if e.starts_with("NOT_FOUND:") => HttpResponse::NotFound().body("404"),
@@ -252,10 +252,10 @@ async fn main() -> std::io::Result<()> {
             .service(admin_page)
             .service(get_file)
             .service(post_file)
-            .service(return_file)
-            .service(file_tree)
-            .service(rss_feed_for_path)  
+            .service(file_tree)   
             .service(rss_feed)
+            .service(rss_feed_for_path)
+            .service(return_file)
     })
     .bind(config.host)?
     .run()

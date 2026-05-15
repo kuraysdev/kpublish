@@ -1,4 +1,5 @@
 use chrono::{DateTime, FixedOffset, Utc};
+use pulldown_cmark::{Parser, Options, html};
 use serde::Deserialize;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -108,9 +109,7 @@ fn build_rss_xml(public_dir: &Path, base_url: &str, markdown_files: Vec<PathBuf>
         let title = frontmatter
             .title
             .unwrap_or_else(|| title_from_path(relative_path));
-        let description = frontmatter
-            .description
-            .unwrap_or_else(|| description_from_markdown(&content));
+        let description = markdown_to_html(&content);
 
         items.push(FeedItem {
             title,
@@ -198,18 +197,11 @@ fn title_from_path(path: &Path) -> String {
         .unwrap_or_else(|| "Untitled".to_string())
 }
 
-fn description_from_markdown(content: &str) -> String {
-    let first_non_empty_line = content
-        .lines()
-        .find(|line| !line.trim().is_empty())
-        .unwrap_or("")
-        .trim();
-
-    if first_non_empty_line.is_empty() {
-        return "No description".to_string();
-    }
-
-    first_non_empty_line.chars().take(240).collect()
+fn markdown_to_html(markdown: &str) -> String {
+    let parser = Parser::new_ext(markdown, Options::all());
+    let mut html_output = String::new();
+    html::push_html(&mut html_output, parser);
+    html_output
 }
 
 fn normalize_base_url(base_url: &str) -> String {
@@ -233,7 +225,7 @@ fn render_rss_xml(base_url: &str, items: &[FeedItem]) -> String {
         .unwrap_or("Thu, 01 Jan 1970 00:00:00 +0000");
 
     let mut xml = String::from(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\">\n  <channel>\n",
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\">\n  <channel>\n"
     );
     xml.push_str("    <title>kpublish</title>\n");
     xml.push_str(&format!(
@@ -241,6 +233,7 @@ fn render_rss_xml(base_url: &str, items: &[FeedItem]) -> String {
         escape_xml(&normalized_base_url)
     ));
     xml.push_str("    <description>kpublish RSS feed</description>\n");
+    xml.push_str("<generator>kpublish</generator>\n");
     xml.push_str(&format!(
         "    <lastBuildDate>{}</lastBuildDate>\n",
         escape_xml(last_build_date)

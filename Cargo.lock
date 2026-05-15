@@ -821,7 +821,7 @@ dependencies = [
 
 [[package]]
 name = "kpublish"
-version = "0.10.3"
+version = "0.2.0"
 dependencies = [
  "actix-files",
  "actix-web",
