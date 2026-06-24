@@ -8,7 +8,7 @@ use std::io::Read;
 use std::path::Path;
 
 // Struct for file or directory representation
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct FileNode {
     name: String,
     path: String,
@@ -25,7 +25,7 @@ pub struct PostMetadata {
     pub extra: std::collections::HashMap<String, serde_yaml::Value>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct PostInfo {
     pub path: String,
     pub metadata: serde_json::Value, // Change to a serializable type
@@ -33,7 +33,7 @@ pub struct PostInfo {
     pub date: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct DirectoryIndex {
     pub posts: Vec<PostInfo>,
     pub subdirs: Vec<String>,
@@ -46,7 +46,7 @@ fn get_file_date(path: &Path) -> String {
             return datetime.format("%Y-%m-%d %H:%M:%S").to_string();
         }
     }
-    "1970-01-01".to_string() // fallback date if we can't get modification time
+    "1970-01-01 10:00:00".to_string() // fallback date if we can't get modification time
 }
 
 fn extract_preview(content: &str) -> String {
@@ -66,7 +66,7 @@ fn extract_preview(content: &str) -> String {
         .join(". ");
 
     if preview.is_empty() {
-        content.chars().take(200).collect()
+        content.chars().take(120).collect()
     } else {
         preview + "..."
     }
@@ -78,25 +78,19 @@ pub fn get_directory_index(dir_path: &Path) -> DirectoryIndex {
     // TODO(kuraysdev): Rewrite this
     if let Ok(entries) = fs::read_dir(dir_path) {
         for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
+            let path = entry.expect("entry is not valid").path();
 
-                if path.is_dir() {
-                    if let Some(dir_name) = path.file_name() {
-                        if let Some(dir_str) = dir_name.to_str() {
-                            if !dir_str.starts_with('.') {
-                                // Skip hidden directories
-                                subdirs.push(dir_str.to_string());
-                            }
-                        }
+            if path.is_dir() {
+                if let Some(dir_name) = path.file_name().expect("dir name is not valid unicode").to_str() {
+                    if !dir_name.starts_with('.') {
+                        // Skip hidden directories
+                        subdirs.push(dir_name.to_string());
                     }
-                } else if let Some(extension) = path.extension() {
-                    if let Some(file) = path.file_name() {
-                        if let Some(file_str) = file.to_str() {
-                            if file_str.starts_with('.') {
-                                break;
-                            }
-                        }
+                }
+            } else if let Some(extension) = path.extension() {
+                if let Some(file) = path.file_name().expect("file name is not valid unicode").to_str() {
+                    if file.starts_with('.') {
+                        continue;
                     }
                     if extension == "md" && !path.ends_with("index.md") {
                         if let Ok(mut file) = fs::File::open(&path) {

@@ -185,6 +185,7 @@ async fn return_file(
         let mut data = json!({});
         if file_path.file_name().unwrap() == "index.md" {
             let dir_index = fileutil::get_directory_index(file_path.parent().unwrap());
+            println!("index: {:?}", dir_index);
             data = json!({
                 "index": dir_index
             });
@@ -252,7 +253,7 @@ async fn main() -> std::io::Result<()> {
             .service(admin_page)
             .service(get_file)
             .service(post_file)
-            .service(file_tree)   
+            .service(file_tree)
             .service(rss_feed)
             .service(rss_feed_for_path)
             .service(return_file)
