@@ -1,0 +1,113 @@
+name: Build, publish and propose immutable image
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        type: string
+        required: true
+      context:
+        type: string
+        default: '.'
+      dockerfile:
+        type: string
+        default: Dockerfile
+      infrastructure-repository:
+        type: string
+        required: true
+      values-path:
+        type: string
+        required: true
+      github-app-id:
+        type: string
+        required: true
+    secrets:
+      INFRA_APP_PRIVATE_KEY:
+        required: true
+permissions:
+  contents: read
+  packages: write
+jobs:
+  image:
+    # A reusable workflow must never publish untrusted PR code with credentials.
+    if: github.event_name != 'pull_request' && github.event_name != 'pull_request_target'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          persist-credentials: false
+      - name: Validate inputs and normalize GHCR owner
+        id: settings
+        env:
+          IMAGE_NAME: ${{ inputs.image-name }}
+          INFRA_REPO: ${{ inputs.infrastructure-repository }}
+          VALUES_PATH: ${{ inputs.values-path }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_NAME" =~ ^[a-z0-9][a-z0-9-]*$ ]]
+          [[ "$INFRA_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          [[ "$VALUES_PATH" =~ ^applications/[a-z0-9-]+/values\.yaml$ ]]
+          echo "image=ghcr.io/${OWNER,,}/$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "owner=${INFRA_REPO%/*}" >> "$GITHUB_OUTPUT"
+          echo "repository=${INFRA_REPO#*/}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f  # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9  # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8  # v6
+        id: build
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          push: true
+          tags: ${{ steps.settings.outputs.image }}:${{ github.sha }}
+          provenance: true
+          sbom: true
+      - uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349  # v2
+        id: app
+        with:
+          app-id: ${{ inputs.github-app-id }}
+          private-key: ${{ secrets.INFRA_APP_PRIVATE_KEY }}
+          owner: ${{ steps.settings.outputs.owner }}
+          repositories: ${{ steps.settings.outputs.repository }}
+          permission-contents: write
+          permission-pull-requests: write
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          repository: ${{ inputs.infrastructure-repository }}
+          ref: main
+          token: ${{ steps.app.outputs.token }}
+          path: infrastructure
+          persist-credentials: false
+      - name: Update only the digest in infrastructure checkout
+        working-directory: infrastructure
+        env:
+          VALUES_PATH: ${{ inputs.values-path }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE_REPOSITORY: ${{ steps.settings.outputs.image }}
+        run: |
+          python - <<'PY'
+          import os, re
+          from pathlib import Path
+          path = Path(os.environ['VALUES_PATH'])
+          text = path.read_text()
+          expected = os.environ['IMAGE_REPOSITORY']
+          match = re.search(r'(?m)^  repository:\s*(\S+)\s*$', text)
+          assert match and match[1].strip("'\"") == expected, 'Configure the expected image repository first'
+          PY
+          python scripts/update_image.py "$VALUES_PATH" "$IMAGE_DIGEST"
+      - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676  # v7
+        with:
+          path: infrastructure
+          token: ${{ steps.app.outputs.token }}
+          branch: image/${{ inputs.image-name }}
+          add-paths: ${{ inputs.values-path }}
+          commit-message: 'Update ${{ inputs.image-name }} image digest'
+          title: 'Update ${{ inputs.image-name }} image digest'
+          body: |
+            Image: `${{ steps.settings.outputs.image }}@${{ steps.build.outputs.digest }}`
+            Source: `${{ github.repository }}@${{ github.sha }}`
+            Enablement is preserved. Validate and merge before Argo CD synchronization.

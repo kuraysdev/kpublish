@@ -44,6 +44,16 @@ struct AppState {
     rss_cache: RwLock<HashMap<String, String>>,
 }
 
+fn public_path(path: &str) -> Option<PathBuf> {
+    let mut result = PathBuf::from("public");
+    for part in Path::new(path).components() {
+        if !matches!(part, std::path::Component::Normal(_)) { return None; }
+        result.push(part.as_os_str());
+        if fs::symlink_metadata(&result).map(|m| m.file_type().is_symlink()).unwrap_or(false) { return None; }
+    }
+    Some(result)
+}
+
 #[get("/admin")]
 async fn admin_page(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
     let html = hb.render("admin", &json!({})).unwrap();
@@ -52,7 +62,7 @@ async fn admin_page(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
 
 #[get("/api/files/{path:.*}")]
 async fn get_file(path: web::Path<String>) -> HttpResponse {
-    let file_path = Path::new("public").join(path.into_inner());
+    let file_path = match public_path(&path.into_inner()) { Some(p) => p, None => return HttpResponse::BadRequest().body("Invalid path") };
 
     match fs::read_to_string(&file_path) {
         Ok(content) => HttpResponse::Ok().body(content),
@@ -75,7 +85,7 @@ async fn post_file(
     }
 
     let path_str = path.into_inner();
-    let file_path = PathBuf::from("public").join(&path_str);
+    let file_path = match public_path(&path_str) { Some(p) => p, None => return HttpResponse::BadRequest().body("Invalid path") };
 
     // Create directories if they don't exist
     if let Some(parent) = file_path.parent() {
@@ -161,7 +171,7 @@ async fn return_file(
     hb: web::Data<Handlebars<'_>>,
 ) -> HttpResponse {
     let post = path.into_inner();
-    let requested_path = Path::new("public").join(format!("{}", post));
+    let requested_path = match public_path(&post) { Some(p) => p, None => return HttpResponse::BadRequest().body("Invalid path") };
 
     let file_path = if requested_path.is_dir() || post.is_empty() {
         requested_path.join("index.md")
@@ -171,6 +181,7 @@ async fn return_file(
         requested_path
     };
 
+    if public_path(&file_path.strip_prefix("public").unwrap().to_string_lossy()).is_none() { return HttpResponse::BadRequest().body("Invalid path"); }
     if !file_path.exists() || !file_path.is_file() {
         return HttpResponse::NotFound().body("404");
     }
@@ -262,4 +273,16 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod migration_tests {
+    use super::*;
+    #[test]
+    fn rejects_parent_and_absolute_paths() {
+        assert!(public_path("../config.yaml").is_none());
+        assert!(public_path("blog/../../config.yaml").is_none());
+        assert!(public_path("/etc/passwd").is_none());
+        assert_eq!(public_path("blog/article.md"), Some(PathBuf::from("public/blog/article.md")));
+    }
 }

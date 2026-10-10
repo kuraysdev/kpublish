@@ -1,0 +1,35 @@
+name: Test and publish kpublish
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Test and build Rust
+        run: docker build --target build --tag kpublish-test .
+  publish:
+    needs: test
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/ci.yaml
+    with:
+      image-name: kpublish
+      infrastructure-repository: kuraysdev/kurays-infrastructure
+      values-path: applications/kpublish/values.yaml
+      github-app-id: ${{ vars.INFRA_APP_ID }}
+    secrets:
+      INFRA_APP_PRIVATE_KEY: ${{ secrets.INFRA_APP_PRIVATE_KEY }}
