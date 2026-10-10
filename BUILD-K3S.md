@@ -32,3 +32,6 @@ Rust multi-stage build выполняет `cargo test --locked` и release build
 Настройка host в Secret должна быть `0.0.0.0:8777`.
 Проверка пути в исходниках запрещает выход из public и traversal через symlink.
 
+
+Без App сборка и GHCR push работают; digest будет в job summary.
+Автоматический PR включится после настройки App ID и private key.

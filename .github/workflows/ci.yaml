@@ -19,10 +19,10 @@ on:
         required: true
       github-app-id:
         type: string
-        required: true
+        default: ''
     secrets:
       INFRA_APP_PRIVATE_KEY:
-        required: true
+        required: false
 permissions:
   contents: read
   packages: write
@@ -66,7 +66,8 @@ jobs:
           tags: ${{ steps.settings.outputs.image }}:${{ github.sha }}
           provenance: true
           sbom: true
-      - uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349  # v2
+      - if: inputs.github-app-id != ''
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349  # v2
         id: app
         with:
           app-id: ${{ inputs.github-app-id }}
@@ -75,7 +76,8 @@ jobs:
           repositories: ${{ steps.settings.outputs.repository }}
           permission-contents: write
           permission-pull-requests: write
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - if: inputs.github-app-id != ''
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           repository: ${{ inputs.infrastructure-repository }}
           ref: main
@@ -83,6 +85,7 @@ jobs:
           path: infrastructure
           persist-credentials: false
       - name: Update only the digest in infrastructure checkout
+        if: inputs.github-app-id != ''
         working-directory: infrastructure
         env:
           VALUES_PATH: ${{ inputs.values-path }}
@@ -99,7 +102,8 @@ jobs:
           assert match and match[1].strip("'\"") == expected, 'Configure the expected image repository first'
           PY
           python scripts/update_image.py "$VALUES_PATH" "$IMAGE_DIGEST"
-      - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676  # v7
+      - if: inputs.github-app-id != ''
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676  # v7
         with:
           path: infrastructure
           token: ${{ steps.app.outputs.token }}
@@ -111,3 +115,13 @@ jobs:
             Image: `${{ steps.settings.outputs.image }}@${{ steps.build.outputs.digest }}`
             Source: `${{ github.repository }}@${{ github.sha }}`
             Enablement is preserved. Validate and merge before Argo CD synchronization.
+      - name: Report immutable release
+        env:
+          IMAGE: ${{ steps.settings.outputs.image }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          APP_ID: ${{ inputs.github-app-id }}
+        run: |
+          printf 'Image: `%s@%s`\n' "$IMAGE" "$DIGEST" >> "$GITHUB_STEP_SUMMARY"
+          if [ -z "$APP_ID" ]; then
+            echo 'GitOps PR pending: configure INFRA_APP_ID and INFRA_APP_PRIVATE_KEY.' >> "$GITHUB_STEP_SUMMARY"
+          fi
